@@ -12,6 +12,8 @@ dependencies = [
     "redis>=6.2.0",
 ]
 
+[project.urls]
+Repository = "https://github.com/vvanglro/resumable-sse"
 
 [build-system]
 requires = ["hatchling"]

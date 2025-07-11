@@ -10,6 +10,26 @@
 * ⚙️ Clean abstraction, minimal API surface
 * 🧪 Easy to test, extendable for custom storage backends
 
+## 🤔 Why Use `resumable-sse`?
+
+In AI chat or streaming applications, when a user refreshes the page or the network is interrupted, the ongoing Server-Sent Events (SSE) stream is lost. Without a recovery mechanism, the frontend has no way to continue receiving the previous stream, and the backend often has to **re-generate the entire response**, wasting time and compute.
+
+`resumable-sse` solves this by:
+
+* Caching every message chunk in a backend (in-memory or Redis)
+* Allowing clients to resume streaming from the last received event via `Last-Event-ID`
+* Decoupling message generation from delivery, so you don’t have to re-trigger expensive operations
+
+### 🧠 Use case example:
+
+You’re building a web AI assistant. A user asks a long question. Halfway through the response, they accidentally refresh the browser. Instead of restarting the whole LLM generation, the backend resumes from where it left off and continues streaming seamlessly.
+
+This avoids:
+
+* Unnecessary re-generation
+* Cost and latency from repeated model computation
+* Poor user experience
+
 ## 📦 Installation
 
 ```bash
