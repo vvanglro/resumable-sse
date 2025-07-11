@@ -1,0 +1,25 @@
+[project]
+name = "resumable-sse"
+version = "0.1.0"
+description = "Asynchronous recoverable SSE (Server-Sent Events) push toolkit, supporting Redis and in-memory backend."
+readme = "README.md"
+authors = [
+    { name = "vvanglro", email = "vvanglro@gmail.com" }
+]
+requires-python = ">=3.10"
+license = "MIT"
+dependencies = [
+    "redis>=6.2.0",
+]
+
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "fastapi>=0.116.0",
+    "sse-starlette>=2.4.1",
+    "uvicorn>=0.35.0",
+]
