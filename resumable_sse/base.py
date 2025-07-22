@@ -1,6 +1,9 @@
 import asyncio
+import time
 from typing import AsyncIterable, Iterator, Any, AsyncGenerator, AsyncIterator, TypeVar, Iterable
 from abc import ABC, abstractmethod
+
+from resumable_sse.state import ChatState
 
 T = TypeVar("T")
 Content = str | bytes | dict | Any
@@ -56,31 +59,49 @@ class BaseSSEStreamer(ABC):
             body_iterator = generator_fn
         else:
             body_iterator = iterate_in_threadpool(generator_fn)
+        await self.set_state(session_id, ChatState.GENERATING)
         try:
             async for chunk in body_iterator:
                 await self.push(session_id, chunk)
         finally:
             await self.mark_end(session_id)
-            await self._set_state(session_id, self.end_marker)
+            await self.set_state(session_id, self.end_marker)
+            await self._clear(session_id)
 
     @abstractmethod
-    async def _get_state(self, session_id: str) -> str:
+    async def get_state(self, session_id: str) -> str:
         pass
 
     @abstractmethod
-    async def _set_state(self, session_id: str, state: str) -> None:
+    async def set_state(self, session_id: str, state: str) -> None:
         pass
 
-    async def _should_generate(self, session_id: str) -> bool:
-        state = await self._get_state(session_id)
-        return state not in ("generating", self.end_marker)
+    @abstractmethod
+    async def check_generation_limit(self, state: str, session_id: str) -> bool:
+        pass
+
+    async def _clear(self, session_id: str) -> None:
+        st = time.time()
+        # If the message is not normally received by the front-end within 10 seconds after it is generated, it will be cleared.
+        while await self.get_state(session_id) != ChatState.DONE and time.time() - st < 10:
+            await asyncio.sleep(1)
+        await self.clear(session_id)
+
+    async def _should_generate(self, state: str) -> bool:
+        return state not in (ChatState.START, ChatState.GENERATING, self.end_marker)
 
     async def maybe_start_generator(
             self,
             session_id: str,
             generator: ContentStream,
-    ):
-        if generator and await self._should_generate(session_id):
-            await self._set_state(session_id, "generating")
+    ) -> bool:
+        state = await self.get_state(session_id)
+        if not await self.check_generation_limit(state, session_id):
+            return False
+
+        if generator and await self._should_generate(state):
+            await self.set_state(session_id, ChatState.START)
             asyncio.create_task(self._wrap_generator(session_id, generator))
             await asyncio.sleep(0.1)  # allow task to start
+
+        return True
