@@ -10,11 +10,12 @@ def get_streamer(
     redis_client: Optional[redis.Redis] = None,
     stream_prefix: str = "stream:chat",
     status_prefix: str = "status:chat",
-    end_marker: str = "[END]"
+    end_marker: str = "[END]",
+    limit: int = 3,
 ) -> BaseSSEStreamer:
     
     if backend == "memory":
-        return MemorySSEStreamer(end_marker=end_marker)
+        return MemorySSEStreamer(end_marker=end_marker, limit=limit)
 
     elif backend == "redis":
         if redis_client is None:
@@ -23,7 +24,8 @@ def get_streamer(
             redis_client,
             stream_prefix=stream_prefix,
             status_prefix=status_prefix,
-            end_marker=end_marker
+            end_marker=end_marker,
+            limit=limit,
         )
 
     else:
