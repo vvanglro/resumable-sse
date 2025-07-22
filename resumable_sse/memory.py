@@ -58,7 +58,6 @@ class MemorySSEStreamer(BaseSSEStreamer):
             if index < len(messages):
                 chunk = messages[index]
                 if chunk == self.end_marker:
-                    print("end")
                     yield {"event": "end", "data": ""}
                     break
                 yield {"event": "message", "id": str(index), "data": chunk}
