@@ -27,10 +27,10 @@ class MemorySSEStreamer(BaseSSEStreamer):
         self._events.pop(session_id, None)
         self._generation_counts.pop(session_id, None)
 
-    async def _get_state(self, session_id: str) -> str:
+    async def get_state(self, session_id: str) -> str:
         return self._states.get(session_id, "")
 
-    async def _set_state(self, session_id: str, state: str) -> None:
+    async def set_state(self, session_id: str, state: str) -> None:
         self._states[session_id] = state
 
     async def check_generation_limit(self, state: str, session_id: str) -> bool:
@@ -68,8 +68,8 @@ class MemorySSEStreamer(BaseSSEStreamer):
                 try:
                     await asyncio.wait_for(self._events[session_id].wait(), timeout=3)
                 except asyncio.TimeoutError:
-                    if await self._get_state(session_id) != ChatState.GENERATING:
+                    if await self.get_state(session_id) != ChatState.GENERATING:
                         break
 
-        await self._set_state(session_id, "[Done]")
+        await self.set_state(session_id, "[Done]")
 

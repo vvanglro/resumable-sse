@@ -59,21 +59,21 @@ class BaseSSEStreamer(ABC):
             body_iterator = generator_fn
         else:
             body_iterator = iterate_in_threadpool(generator_fn)
-        await self._set_state(session_id, ChatState.GENERATING)
+        await self.set_state(session_id, ChatState.GENERATING)
         try:
             async for chunk in body_iterator:
                 await self.push(session_id, chunk)
         finally:
             await self.mark_end(session_id)
-            await self._set_state(session_id, self.end_marker)
+            await self.set_state(session_id, self.end_marker)
             await self._clear(session_id)
 
     @abstractmethod
-    async def _get_state(self, session_id: str) -> str:
+    async def get_state(self, session_id: str) -> str:
         pass
 
     @abstractmethod
-    async def _set_state(self, session_id: str, state: str) -> None:
+    async def set_state(self, session_id: str, state: str) -> None:
         pass
 
     @abstractmethod
@@ -83,7 +83,7 @@ class BaseSSEStreamer(ABC):
     async def _clear(self, session_id: str) -> None:
         st = time.time()
         # If the message is not normally received by the front-end within 10 seconds after it is generated, it will be cleared.
-        while await self._get_state(session_id) != ChatState.DONE and time.time() - st < 10:
+        while await self.get_state(session_id) != ChatState.DONE and time.time() - st < 10:
             await asyncio.sleep(1)
         await self.clear(session_id)
 
@@ -95,12 +95,12 @@ class BaseSSEStreamer(ABC):
             session_id: str,
             generator: ContentStream,
     ) -> bool:
-        state = await self._get_state(session_id)
+        state = await self.get_state(session_id)
         if not await self.check_generation_limit(state, session_id):
             return False
 
         if generator and await self._should_generate(state):
-            await self._set_state(session_id, ChatState.START)
+            await self.set_state(session_id, ChatState.START)
             asyncio.create_task(self._wrap_generator(session_id, generator))
             await asyncio.sleep(0.1)  # allow task to start
 

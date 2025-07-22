@@ -41,11 +41,11 @@ class RedisSSEStreamer(BaseSSEStreamer):
         await self.client.delete(self._status_key(session_id))
         await self.client.delete(self._limit_prefix(session_id))
 
-    async def _get_state(self, session_id: str) -> str:
+    async def get_state(self, session_id: str) -> str:
         val = await self.client.hget(self._status_key(session_id), "state")
         return val.decode() if val else ""
 
-    async def _set_state(self, session_id: str, state: str) -> None:
+    async def set_state(self, session_id: str, state: str) -> None:
         await self.client.hset(self._status_key(session_id), "state", state)
 
     async def check_generation_limit(self, state: str, session_id: str) -> bool:
@@ -78,8 +78,8 @@ class RedisSSEStreamer(BaseSSEStreamer):
                         break
                     yield {"event": "message", "id": msg_id.decode(), "data": data}
             else:
-                state = await self._get_state(session_id)
+                state = await self.get_state(session_id)
                 if state != ChatState.GENERATING:
                     break
 
-        await self._set_state(session_id, "[Done]")
+        await self.set_state(session_id, "[Done]")
